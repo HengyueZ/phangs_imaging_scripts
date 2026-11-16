@@ -114,7 +114,7 @@ Status key: `exists` · `scratch` · `new` · `undefined` (needs definition befo
  
 | ID | Check | Purpose | Status | Needs CASA | Owner |
 |---|---|---|---|---|---|
-| P1 | Integrated flux over cube | Detect TP bandwidth problems | exists? Not located in the received code. Candidates: Annie's `phangs_cube_compare.pro` / `phangs_tpcube_show.pro`, Daizhong's `phangs_alma_QA_two_cube_image_comparison.py` (to confirm, see §7) | ? | _TBD (porting)_ |
+| P1 | Integrated flux over cube | Detect TP bandwidth problems | exists? Not located in the received code. Candidates: `phangs_cube_compare.pro` / `phangs_tpcube_show.pro` (Annie's older IDL, archived in Daizhong's repo under `idl_code_by_annie_hughes/cube_compare/`; not in `cmz_qa_idl`), Daizhong's `python_code_by_daizhong_liu/phangs_alma_QA_two_cube_image_comparison.py` (to confirm, see §7) | ? | _TBD (porting)_ |
 | P2 | Field-of-view coverage map | Map of anchor pointings: pointing centres + primary-beam circles from field-selected data | scratch (Jakob). Daizhong's MS module has a version with a fixed 60″ primary beam (wrong for 7m and for frequencies other than ~230 GHz); Jakob's version to replace it | likely (reads MS) | Jakob |
 | P3 | Per-part diagnostics of concatenated data | PSF, noise, … of part 1 vs part 2 passed to joint deconvolution | new | yes | |
 | P4 | Sensitivity per array configuration | Sensitivity of each constituent config and of the combination | new | yes / sensitivity calc. | |
@@ -274,7 +274,7 @@ Proposed (design draft, not agreed):
 - [ ] Test subset of targets for development?
 - [ ] Where are QA outputs stored for the full sample, and who can access them?
 - [ ] Upstream plan: when do we talk to the pipeline maintainers?
-- [ ] Are Annie & Daizhong happy for their scripts to be ported/modified in our fork, and how should they be credited? (Hengyue to ask)
+- [x] ~~Are Annie & Daizhong happy for their scripts to be ported/modified in our fork?~~ Yes, incl. sharing with the team (see §9). Credit form still open (above).
 - [ ] Data scope for PHANGS-CMZs: targets, lines, configurations, TP or not (see §1 Scope)
 - [ ] Is postprocessing (PB correction, feathering, round-beam convolution, mosaicking) in scope for QA? (§5.5)
 - [ ] Which of the proposed checks in §5.5 to adopt, and with which owners?
@@ -285,9 +285,9 @@ Proposed (design draft, not agreed):
 - [ ] Integration branch name: rename `CMZ-QA` → `qa` (as recorded in §9), or confirm `CMZ-QA` and log the change
 - [ ] Keep the fork under Hengyue's account or move it to a GitHub organisation?
 - [ ] Which code does P1 refer to? (Hengyue to ask Annie & Daizhong)
-- [ ] Is the "Antonio plot" the per-channel 2D value-density spectrum used in both code bases? (Hengyue to ask Annie)
-- [ ] Is Daizhong's `phangs_alma_qa_pipeline` package his current version, and will he keep developing it? (affects A6)
-- [ ] What does Annie's `cmz_qa_idl` add beyond the older `phangs_cube_show.pro` that Daizhong ported? Were the self-generated noise cube and mask in `run_cmz_qa.pro` intentional or a stopgap?
+- [ ] How do Annie & Daizhong prefer to be credited (code headers, upstream PR, publications)? (Hengyue to ask)
+- [ ] Is `phangs_alma_qa_pipeline` Daizhong's current version, and will he keep developing it? (affects A6; Hengyue to ask)
+- [ ] Technical questions for Annie & Daizhong (list to be agreed at the team meeting on 2026-11-18; candidates: which code P1 refers to; whether the "Antonio plot" is the per-channel 2D value-density spectrum; what `cmz_qa_idl` adds beyond the older `phangs_cube_show.pro`; whether the self-generated noise/mask in `run_cmz_qa.pro` is intentional)
 - [ ] Reporting layer: reuse Daizhong's HTML report/portal, Annie's `cmz_qa_site` (GitHub Pages), or both?
 ---
  
@@ -300,7 +300,9 @@ Proposed (design draft, not agreed):
 | Contact Annie & Daizhong (external); get existing QA scripts | Hengyue | done: code received (see §10) | — |
 | Create fork and integration branch; add fork URL to header | Hengyue | done: fork + `CMZ-QA` created; branch name to be settled (§7) | — |
 | Add team members as collaborators; enable branch protection (PR + 1 reviewer) | Hengyue | open | — |
-| Ask Annie & Daizhong: permission/credit, P1 code, "Antonio plot", current versions, CMZ-specific additions (§7) | Hengyue | open | — |
+| Ask Annie & Daizhong: preferred form of credit; whether Daizhong's package is his current version (§7) | Hengyue | open | — |
+| Make Annie's and Daizhong's code available to the team (fork or Project knowledge) | Hengyue | open | — |
+| Agree list of technical questions for Annie & Daizhong | All (meeting 2026-11-18) | open | — |
 | Clean up FoV coverage plot (P2) for porting | Jakob | open | — |
 | Diff Annie's `cmz_cube_show.pro` against Daizhong's Python port; list missing features | _TBD_ | open | — |
 | Test-run Daizhong's `phangs-qa` on one PHANGS-CMZs target with real pipeline products | _TBD_ | open | — |
@@ -316,6 +318,7 @@ Proposed (design draft, not agreed):
  
 | Date | Decision | Who |
 |---|---|---|
+| 2026-11-12 | Annie & Daizhong agree that their QA code may be shared with the team and ported/modified in our fork; form of credit still open (reported by Hengyue) | Annie, Daizhong |
 | 2026-11-05 | Work in team fork; `qa` integration branch; feature branches off `qa` | Team meeting |
 | 2026-11-05 | This file is the shared source of truth for the QA effort | Team meeting |
 
@@ -329,11 +332,12 @@ Status as received; not yet tested on PHANGS-CMZs products.
 - `diagnostics/`: line-by-line port of Annie's older `phangs_cube_show.pro` (robust_sigma, per-channel stats in/out of mask, rms0, histograms, "Antonio" density spectra, channel maps) plus Daizhong's legacy per-channel 5-panel figures.
 - Outputs per cube: JSON stats, pdflatex PDF (IDL layout), unified HTML report; survey-wide portal `index.html`. Production run on 90 cubes reported in its TODO.
 - No pass/warn/fail or thresholds; raw metrics and plots only.
-- Not ported (legacy only): Annie's `phangs_cube_compare.pro`, `phangs_tpcube_show.pro`; Daizhong's two-cube comparison and calibrator-flux scripts.
+- Also contains archived legacy code: Annie's older IDL suite (`idl_code_by_annie_hughes/cube_compare/`, incl. `phangs_cube_show.pro`, the reference for the Python port) and Daizhong's older Python QA (`python_code_by_daizhong_liu/`).
+- Not ported to the package (legacy only): `phangs_cube_compare.pro` (regrid two cubes to common grid/resolution/FoV and compare statistics, e.g. ALMA TP vs. IRAM HERA), `phangs_tpcube_show.pro` (TP cube inspection), Daizhong's two-cube comparison and calibrator-flux scripts.
 - Vendors a copy of `analysisUtils.py` (upstream is removing this dependency, PR #402).
 
 **Annie: `cmz_qa_idl`** (public)
-- IDL; newer CMZ-specific fork of the `phangs_cube_show.pro` lineage (`cmz_cube_show.pro`), one-row FITS summary table (~100 stats columns), PNG plots.
+- IDL; newer CMZ-specific fork of the `phangs_cube_show.pro` lineage (`cmz_cube_show.pro`), one-row FITS summary table (~100 stats columns), PNG plots. Does not include the cube-comparison or TP routines (those exist only in the archived copy in Daizhong's repo).
 - Dependencies not bundled: IDLAstro, Freudenreich robust routines, CPROPStoo, Coyote Graphics, ImageMagick.
 - `run_cmz_qa.pro` currently passes the data cube as residual and generates noise and mask from the cube (CPROPStoo), so residual-based outputs are not meaningful yet.
 - `cmz_check_header` requires K units and reads only single-beam keywords.
