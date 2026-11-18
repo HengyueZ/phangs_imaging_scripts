@@ -14,7 +14,6 @@
 | **Lead** | Hengyue (QA infrastructure build) |
 | **Target** | QA infrastructure ready by Christmas 2026; QA of individual galaxies starts in the New Year |
 | **Existing QA code** | See §10 (inventory of Annie's and Daizhong's code) |
-| **Task tracker** | _TBD — GitHub Project board on the fork_ |
 | **Related documents** | `phangs_alma_qa_design_jakob.md`: first-pass design draft (input only, not decisions; it uses different check IDs and assumes PHANGS-ALMA scope; QA_PLAN.md supersedes it where they conflict) |
 ---
  
@@ -64,7 +63,7 @@ Not yet written down. To be filled in:
 | Annie | Author of existing QA scripts |
 | Daizhong | Author of existing QA scripts |
  
-Annie and Daizhong do not have access to the Claude Project or this team's chats; contact goes through Hengyue. Credit their scripts in code headers and in any upstream PR.
+Annie and Daizhong do not have access to the Claude Project or this team's chats; contact goes through Hengyue. Credit their scripts (form to be agreed, see §7).
  
 _Please correct/extend these tables._
  
@@ -114,7 +113,7 @@ Open design decisions:
 | A10 | Waivers | Curated file (target, product, check, reason, who, date) so accepted issues show as "waived"; who may waive; do waivers expire when inputs change? | — | _open_ |
 | A11 | Threshold calibration | Design draft suggests: run metrics on existing products first, set thresholds from sample distributions + visual inspection, instead of adopting numbers a priori | — | _open_ |
  
-**Deliverable of Phase 1:** skeleton pushed to `qa` — empty module, results schema, one trivial check running end-to-end, plot output directory.
+**Deliverable of the infrastructure build (Phases 1–2)**: Daizhong’s plots ported on QA-build, validated against the NGC1097 baseline, merged to CMZ-QA.
  
 ---
  
@@ -270,7 +269,6 @@ Owner:
 | **6 — Sample view** | | X1–X3; summary report / dashboard | QA run on full sample |
  
 Proposed (design draft, not agreed):
-- Phase 1: use I1 (beam checks, FITS headers only) as the "one check end-to-end" instead of a dummy check.
 - Phase 3: add cheap FITS-only checks I6, PP4, D3 alongside I1 and I3, if adopted from §5.5.
 - Resolve A2, A7 and A8 before Phase 1 code, since they shape the results schema and whether existing handlers need hooks.
 - Use the Phase 3 test-subset run to calibrate thresholds empirically (A11).
@@ -321,6 +319,7 @@ Proposed (design draft, not agreed):
 | Fill in data scope (§1) | All | open | — |
 | Fill in definitions for `undefined` checks and assign owners (§5) | All | open | — |
 | Architecture discussion: A1, A2, A6, A7, A8, with §10 as input; record outcomes in §4 | All | open | — |
+| Verify suspected issues in Daizhong’s code (§10); decide whether fixes happen during or after porting | Hengyue | open | - |
  
 ---
  
@@ -350,7 +349,6 @@ Status as received; not yet tested on PHANGS-CMZs products.
 - Suspected issues: beam-area unit conversion in `imaging_utils.extract_cube_info` (BMAJ in degrees treated as radians); fixed 60″ PB in MS coverage plot; hard-coded test paths; vendored `analysisUtils.py` (upstream is removing this dependency, PR #402).
 - Also contains archived legacy code: Annie's older IDL suite (`idl_code_by_annie_hughes/cube_compare/`, incl. `phangs_cube_show.pro`, the reference for the Python port) and Daizhong's older Python QA (`python_code_by_daizhong_liu/`).
 - Not ported to the package (legacy only): `phangs_cube_compare.pro` (regrid two cubes to common grid/resolution/FoV and compare statistics, e.g. ALMA TP vs. IRAM HERA), `phangs_tpcube_show.pro` (TP cube inspection), Daizhong's two-cube comparison and calibrator-flux scripts.
-- Vendors a copy of `analysisUtils.py` (upstream is removing this dependency, PR #402).
 
 **Annie: `cmz_qa_idl`** (public)
 - IDL; CMZ-specific fork of `phangs_cube_show.pro` (`cmz_cube_show.pro`); one-row FITS summary table (~100 stats columns), PNG plots. Does not include the cube-comparison or TP routines.
