@@ -7,6 +7,7 @@
 | | |
 |---|---|
 | **Last updated** | 2026-11-18 |
+| **Upstream repo** | [akleroy/phangs_imaging_scripts](https://github.com/akleroy/phangs_imaging_scripts) |
 | **Team fork** | [HengyueZ/phangs_imaging_scripts](https://github.com/HengyueZ/phangs_imaging_scripts) |
 | **Integration branch** | `CMZ-QA` (development on `QA-build`; fork `master` mirrors upstream). See §3. |
 | **Task tracker** | GitHub Project on the fork (Hengyue to set up) |
@@ -300,6 +301,7 @@ Proposed (design draft, not agreed):
 - [ ] Feather QA method for PP2 (if in scope): comparison region/mask, image-plane vs uv-overlap comparison, TP calibration uncertainty, which product is the flux reference
 - [ ] Minimal required plot set per check (A5)
 - [ ] How do members' own branches (new plots/checks) get merged into `CMZ-QA`: same review rule as the port? Only after the infrastructure is in place?
+- [ ] Reporting layer: reuse Daizhong's HTML report/portal, Annie's `cmz_qa_site` (GitHub Pages), or both?
  
 ## 8. Next actions
  
@@ -318,6 +320,7 @@ Proposed (design draft, not agreed):
 | Clean up FoV coverage plot (P2) for porting | Jakob | open | — |
 | Fill in data scope (§1) | All | open | — |
 | Fill in definitions for `undefined` checks and assign owners (§5) | All | open | — |
+| Architecture discussion: A1, A2, A6, A7, A8, with §10 as input; record outcomes in §4 | All | open | — |
  
 ---
  
@@ -347,6 +350,7 @@ Status as received; not yet tested on PHANGS-CMZs products.
 - Suspected issues: beam-area unit conversion in `imaging_utils.extract_cube_info` (BMAJ in degrees treated as radians); fixed 60″ PB in MS coverage plot; hard-coded test paths; vendored `analysisUtils.py` (upstream is removing this dependency, PR #402).
 - Also contains archived legacy code: Annie's older IDL suite (`idl_code_by_annie_hughes/cube_compare/`, incl. `phangs_cube_show.pro`, the reference for the Python port) and Daizhong's older Python QA (`python_code_by_daizhong_liu/`).
 - Not ported to the package (legacy only): `phangs_cube_compare.pro` (regrid two cubes to common grid/resolution/FoV and compare statistics, e.g. ALMA TP vs. IRAM HERA), `phangs_tpcube_show.pro` (TP cube inspection), Daizhong's two-cube comparison and calibrator-flux scripts.
+- Vendors a copy of `analysisUtils.py` (upstream is removing this dependency, PR #402).
 
 **Annie: `cmz_qa_idl`** (public)
 - IDL; CMZ-specific fork of `phangs_cube_show.pro` (`cmz_cube_show.pro`); one-row FITS summary table (~100 stats columns), PNG plots. Does not include the cube-comparison or TP routines.
