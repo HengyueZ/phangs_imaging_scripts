@@ -6,10 +6,12 @@
  
 | | |
 |---|---|
-| **Last updated** | 2026-11-16 |
-| **Upstream repo** | [akleroy/phangs_imaging_scripts](https://github.com/akleroy/phangs_imaging_scripts) |
-| **Team fork** | [HengyueZ/phangs_imaging_scripts](https://github.com/HengyueZ/phangs_imaging_scripts) (personal fork; collaborator access for team members to be set up) |
-| **Integration branch** | `CMZ-QA` exists on the fork (created by Hengyue, currently identical to upstream `master` @ `b96bbc6`). ⚠ §9 records `qa` as the branch name; rename the branch or confirm `CMZ-QA` (see §7). |
+| **Last updated** | 2026-11-18 |
+| **Team fork** | [HengyueZ/phangs_imaging_scripts](https://github.com/HengyueZ/phangs_imaging_scripts) |
+| **Integration branch** | `CMZ-QA` (development on `QA-build`; fork `master` mirrors upstream). See §3. |
+| **Task tracker** | GitHub Project on the fork (Hengyue to set up) |
+| **Lead** | Hengyue (QA infrastructure build) |
+| **Target** | QA infrastructure ready by Christmas 2026; QA of individual galaxies starts in the New Year |
 | **Existing QA code** | See §10 (inventory of Annie's and Daizhong's code) |
 | **Task tracker** | _TBD — GitHub Project board on the fork_ |
 | **Related documents** | `phangs_alma_qa_design_jakob.md`: first-pass design draft (input only, not decisions; it uses different check IDs and assumes PHANGS-ALMA scope; QA_PLAN.md supersedes it where they conflict) |
@@ -33,6 +35,8 @@ This extends the existing QA scripts by Daizhong and Annie (external collaborato
 | **Products** | Revise masks (e.g. check PHANGS masks are consistent), adjust clipping in moment maps |
  
 ### Scope (to be confirmed)
+- Development/validation target: NGC1097 (ALMA CMZ data).
+- All QA runs on MPCDF.
  
 Not yet written down. To be filled in:
 - Which PHANGS-CMZs data: targets, lines, array configurations (incl. which 12m arrays are combined), TP yes/no.
@@ -47,7 +51,7 @@ Not yet written down. To be filled in:
 | Person | Current responsibility |
 |---|---|
 | Jakob | Claude Project Setup; Field-of-view / pointing coverage plot (scratch version exists) |
-| Hengyue | Create fork + `qa` branch; liaise with Annie & Daizhong; get existing QA scripts onto GitHub |
+| Hengyue | Leads the QA infrastructure build (porting Daizhong's code on `QA-build` → `CMZ-QA`); owns the fork (team access, GitHub Project); liaises with Annie & Daizhong |
 | Jonny | _TBD_ |
 | Francesco | _TBD_ |
 | _TBD_ | Owners for individual checks; assign in §5 |
@@ -69,11 +73,18 @@ _Please correct/extend these tables._
  
 ### Git
  
-1. Fork `phangs_imaging_scripts` → team fork.
-2. Create `qa` branch on the fork — this is the integration branch. Protect it (changes via PR only).
-3. Every new feature/check: **branch off `qa`** → PR back into `qa` → at least one reviewer.
-4. Periodically merge upstream `master` into the fork to avoid drift.
-5. Long term: PR the QA module upstream (coordinate with pipeline maintainers early).
+Branches on the fork:
+- `master`: mirrors upstream `akleroy/phangs_imaging_scripts`; no QA commits.
+- `QA-build`: development of ported/new QA code.
+- `CMZ-QA`: integration branch. Ported code moves here from `QA-build` only once it passes the validation check below. The eventual upstream PR comes from `CMZ-QA`.
+
+Rules:
+1. Infrastructure build (Hengyue): port Daizhong's code on `QA-build`; each of Daizhong's existing plots is ported as a separate GitHub issue.
+2. Validation of ported code: run Daizhong's original package and the ported version on the same NGC1097 data on MPCDF; outputs must agree within a small tolerance (definition open, see §7) before merging to `CMZ-QA`.
+3. Team members may create their own branches on the fork and add their own plots/checks (not limited to Annie's or Daizhong's code), working from their own MPCDF copies. How these branches are merged into `CMZ-QA` is open (see §7).
+4. Each person edits code locally, pushes to GitHub, and pulls into their own MPCDF copy.
+5. Periodically sync `master` with upstream, then merge `master` into `CMZ-QA` to limit drift.
+6. Review requirement for merges into `CMZ-QA`: open (see §7).
 ### Keeping everyone in sync (Claude Project + GitHub)
  
 - Claude chats are **per person** and Claude's memory is **per user** — nothing in your chat is automatically visible to others.
@@ -90,12 +101,12 @@ Open design decisions:
  
 | # | Question | Options | Leaning | Decision |
 |---|---|---|---|---|
-| A1 | Where does QA live? | (a) new `handlerQA` following handler pattern; (b) standalone post-hoc tool; (c) both. Design draft suggests (c) led by (a): `handlerQA` as entry point, image-level checks written CASA-free on numpy/FITS so they also run standalone, existing handlers gain only provenance hooks (see A9) | (a) reuses key files and target lists | _open_ |
+| A1 | Where does QA live? | (a) new `handlerQA` following handler pattern; (b) standalone post-hoc tool; (c) both. Design draft suggests (c) led by (a) | (a) reuses key files and target lists | Partly decided: QA code lives in the team fork of `phangs_imaging_scripts` (2026-11-18). Location within the package (subpackage / `handlerQA` / other) still open |
 | A2 | QA results format | (i) one record per *target × product × check*: status, metric values, thresholds used, plot paths. (ii) Design draft: one row per *metric* (long format), raw values stored, pass/warn/fail computed from the thresholds file at a `collect` step, so retuning thresholds needs no QA rerun and X1–X3 read raw metrics directly. Per-target JSON-lines, aggregated to one table (Parquet / ECSV). | — | _open_ |
 | A3 | CASA vs pure Python | Split checks needing CASA (visibility-level: per-part PSF, sensitivity) from FITS-only checks | Keep separate | _open_ |
 | A4 | Thresholds | Config/key file, never hard-coded; per-target/per-product overrides? | Config | _open_ |
 | A5 | Plots | Standard per-target diagnostic directory + naming convention (draft: `qa/plots/<target>/<product>/<config>/<check_id>.png` + thumbnails); minimal required plot set per check | — | _open_ |
-| A6 | Integration of Annie/Daizhong scripts (external) | Port into new framework vs wrap as-is; maintenance falls to us either way | Depends on inventory | _open_ |
+| A6 | Integration of Annie/Daizhong scripts (external) | Port into new framework vs wrap as-is; maintenance falls to us either way | — | Port Daizhong's Python code (which already ports Annie's older IDL), validated against his original outputs on NGC1097 (2026-11-18) |
 | A7 | Reporting or gating? | (a) QA only reports; (b) a QA fail can block downstream stages (opt-in key-file flag). Determines whether QA hooks are needed inside existing handlers. | — | _open_ |
 | A8 | Retroactive QA | Must QA run on already-existing products? If yes, checks must work without in-process records, e.g. I3 must parse logs or degrade gracefully. | — | _open_ |
 | A9 | Provenance in results | Fields per record: run ID, timestamp, pipeline git hash, CASA version, QA version, key-file hashes, input file checksums. Optional "provenance-only" sidecar JSON written by existing handlers (clean-loop record, stopping reason, predicted noise, applied parameters), with no QA logic in them. | — | _open_ |
@@ -249,9 +260,9 @@ Owner:
  
 | Phase | Goal | Key tasks | Exit criterion |
 |---|---|---|---|
-| **0 — Inventory** | Know what exists | Fork + `qa` branch; upload Annie/Daizhong scripts; define all `undefined` checks; list inputs each needs | Existing scripts on GitHub; every check in §5 has a written definition |
-| **1 — Architecture** | Agree framework | Resolve A1–A6; push skeleton | Skeleton on `qa`, one dummy check runs end-to-end |
-| **2 — Port existing** | Prove the framework | Port P1, P2 into schema | Existing checks produce schema output + plots |
+| **0 — Inventory** | Know what exists | Fork + branches; obtain Annie/Daizhong code; inventory (§10) | Done 2026-11-18, except definitions of `undefined` checks |
+| **1 — Baseline run** | Reference outputs | Run Daizhong's package on NGC1097 (ALMA CMZ data) on MPCDF; record environment (package versions) | Reference outputs stored on MPCDF |
+| **2 — Port existing** | Prove the framework | Port each of Daizhong's plots as a separate issue on `QA-build`; validate against Phase 1 outputs (§3); merge to `CMZ-QA` | All of Daizhong's plots ported and validated; infrastructure ready by Christmas 2026 |
 | **3 — Quick wins** | High impact, low effort | I1 (beams), I3 (convergence) | Run on a test subset of targets |
 | **4 — Residuals & products** | | I2, I4, D1, D2 | |
 | **5 — CASA-level** | Hardest checks | P3, P4 | |
@@ -266,15 +277,21 @@ Proposed (design draft, not agreed):
  
 ## 7. Open questions
  
-- [ ] What exactly is the **"Antonio plot"**? (owner of definition: ?)
+- [ ] What exactly is the **"Antonio plot"**? Candidate: per-channel 2D value-density spectrum (label used in both Annie's and Daizhong's code); to confirm with Annie
 - [ ] "Max loop breach before convergence" — which parameter/log does this refer to?
 - [ ] Mask consistency (D1): identical *across which products / versions*?
 - [ ] Artefact capture (I4): which artefacts, detected how?
 - [ ] Which CASA version(s) must QA support?
-- [ ] Test subset of targets for development?
-- [ ] Where are QA outputs stored for the full sample, and who can access them?
-- [ ] Upstream plan: when do we talk to the pipeline maintainers?
-- [x] ~~Are Annie & Daizhong happy for their scripts to be ported/modified in our fork?~~ Yes, incl. sharing with the team (see §9). Credit form still open (above).
+- [x] ~~Test subset of targets for development?~~ NGC1097 (2026-11-18)
+- [ ] Where are QA outputs stored for the full sample, and who can access them? (QA runs on MPCDF; storage location and access still open)
+- [ ] Upstream plan: PR will come from `CMZ-QA`; when do we talk to the pipeline maintainers?
+- [x] ~~Are Annie & Daizhong happy for their scripts to be ported/modified in our fork?~~ Yes, incl. sharing with the team
+- [ ] How do Annie & Daizhong prefer to be credited (code headers, upstream PR, publications)? (Hengyue to ask)
+- [ ] Is `phangs_alma_qa_pipeline` Daizhong's current version, and will he keep developing it? (Hengyue to ask)
+- [ ] Technical questions for Annie & Daizhong: final list still to be agreed (candidates: which code P1 refers to; "Antonio plot"; what `cmz_qa_idl` adds; whether self-generated noise/mask in `run_cmz_qa.pro` is intentional)
+- [ ] Validation tolerance for ported code (§3). Proposal (not agreed): numeric outputs (JSON, FITS) same keys/shapes/NaN positions and `numpy.allclose(rtol=1e-6)`; plots compared via the plotted arrays saved alongside, not PNG pixels; PDF/HTML reports excluded; both versions run in the same recorded MPCDF environment
+- [ ] Review requirement for merges `QA-build` → `CMZ-QA`: named reviewer per PR, or none for now?
+- [ ] Location of QA code within the package (A1)
 - [ ] Data scope for PHANGS-CMZs: targets, lines, configurations, TP or not (see §1 Scope)
 - [ ] Is postprocessing (PB correction, feathering, round-beam convolution, mosaicking) in scope for QA? (§5.5)
 - [ ] Which of the proposed checks in §5.5 to adopt, and with which owners?
@@ -282,14 +299,7 @@ Proposed (design draft, not agreed):
 - [ ] Noise reference for I5: `apparentsens`, sum of weights, or Tsys-based radiometer estimate?
 - [ ] Feather QA method for PP2 (if in scope): comparison region/mask, image-plane vs uv-overlap comparison, TP calibration uncertainty, which product is the flux reference
 - [ ] Minimal required plot set per check (A5)
-- [ ] Integration branch name: rename `CMZ-QA` → `qa` (as recorded in §9), or confirm `CMZ-QA` and log the change
-- [ ] Keep the fork under Hengyue's account or move it to a GitHub organisation?
-- [ ] Which code does P1 refer to? (Hengyue to ask Annie & Daizhong)
-- [ ] How do Annie & Daizhong prefer to be credited (code headers, upstream PR, publications)? (Hengyue to ask)
-- [ ] Is `phangs_alma_qa_pipeline` Daizhong's current version, and will he keep developing it? (affects A6; Hengyue to ask)
-- [ ] Technical questions for Annie & Daizhong (list to be agreed at the team meeting on 2026-11-18; candidates: which code P1 refers to; whether the "Antonio plot" is the per-channel 2D value-density spectrum; what `cmz_qa_idl` adds beyond the older `phangs_cube_show.pro`; whether the self-generated noise/mask in `run_cmz_qa.pro` is intentional)
-- [ ] Reporting layer: reuse Daizhong's HTML report/portal, Annie's `cmz_qa_site` (GitHub Pages), or both?
----
+- [ ] How do members' own branches (new plots/checks) get merged into `CMZ-QA`: same review rule as the port? Only after the infrastructure is in place?
  
 ## 8. Next actions
  
@@ -297,20 +307,17 @@ Proposed (design draft, not agreed):
  
 | Task | Owner | Status | Issue / PR |
 |---|---|---|---|
-| Contact Annie & Daizhong (external); get existing QA scripts | Hengyue | done: code received (see §10) | — |
-| Create fork and integration branch; add fork URL to header | Hengyue | done: fork + `CMZ-QA` created; branch name to be settled (§7) | — |
-| Add team members as collaborators; enable branch protection (PR + 1 reviewer) | Hengyue | open | — |
-| Ask Annie & Daizhong: preferred form of credit; whether Daizhong's package is his current version (§7) | Hengyue | open | — |
-| Make Annie's and Daizhong's code available to the team (fork or Project knowledge) | Hengyue | open | — |
-| Agree list of technical questions for Annie & Daizhong | All (meeting 2026-11-18) | open | — |
+| Obtain Annie's and Daizhong's QA code | Hengyue | done (see §10) | — |
+| Create fork and branches (`CMZ-QA`, `QA-build`) | Hengyue | done | — |
+| Give team access to the fork; set up GitHub Project | Hengyue | open | — |
+| Set up code copy on MPCDF | Hengyue | open | — |
+| Run Daizhong's package on NGC1097 on MPCDF; record environment | Hengyue | open | — |
+| Open one issue per Daizhong plot to be ported | Hengyue | open | — |
+| Agree validation tolerance and review rule (§7) | _TBD_ | open | — |
+| Ask Annie & Daizhong: preferred form of credit; whether Daizhong's package is his current version | Hengyue | open | — |
 | Clean up FoV coverage plot (P2) for porting | Jakob | open | — |
-| Diff Annie's `cmz_cube_show.pro` against Daizhong's Python port; list missing features | _TBD_ | open | — |
-| Test-run Daizhong's `phangs-qa` on one PHANGS-CMZs target with real pipeline products | _TBD_ | open | — |
-| Verify suspected issues in Daizhong's code: beam-area unit conversion (`imaging_utils.extract_cube_info`), fixed 60″ PB in MS coverage plot | _TBD_ | open | — |
 | Fill in data scope (§1) | All | open | — |
 | Fill in definitions for `undefined` checks and assign owners (§5) | All | open | — |
-| Architecture discussion: A1, A2, A6, A7, A8, with §10 as input; record outcomes in §4 | All | open | — |
-| Set up GitHub Project board; one issue per check | _TBD_ | open | — |
  
 ---
  
@@ -318,6 +325,11 @@ Proposed (design draft, not agreed):
  
 | Date | Decision | Who |
 |---|---|---|
+| 2026-11-18 | Work in Hengyue's fork; `CMZ-QA` is the integration branch (supersedes `qa` from 2026-11-05); development on `QA-build`; fork `master` mirrors upstream; upstream PR from `CMZ-QA` | Team meeting |
+| 2026-11-18 | Hengyue leads the infrastructure build; goal: QA infrastructure by Christmas 2026, galaxy QA from the New Year | Team meeting |
+| 2026-11-18 | Port Daizhong's code; validate on NGC1097 (ALMA CMZ data): ported output must agree with Daizhong's within a small tolerance before merging to `CMZ-QA` | Team meeting |
+| 2026-11-18 | One GitHub issue per ported Daizhong plot; plots not in Daizhong's code are not part of the infrastructure port. Members may develop their own plots/checks on their own branches | Team meeting |
+| 2026-11-18 | All QA runs on MPCDF; each member works from their own MPCDF copy (edit → push to GitHub → pull on MPCDF) | Team meeting |
 | 2026-11-12 | Annie & Daizhong agree that their QA code may be shared with the team and ported/modified in our fork; form of credit still open (reported by Hengyue) | Annie, Daizhong |
 | 2026-11-05 | Work in team fork; `qa` integration branch; feature branches off `qa` | Team meeting |
 | 2026-11-05 | This file is the shared source of truth for the QA effort | Team meeting |
@@ -327,20 +339,21 @@ Proposed (design draft, not agreed):
 Status as received; not yet tested on PHANGS-CMZs products.
 
 **Daizhong: `phangs-alma-data-quality-assessment-scripts`** (private; package `phangs_alma_qa_pipeline`, v0.1.0)
-- Pure Python (astropy, spectral-cube, radio-beam; optional python-casacore for MS QA). No CASA. Standalone tool reading the PHANGS master key (A1 option b); no pipeline handler hooks.
+- Pure Python (astropy, spectral-cube, radio-beam; optional python-casacore for MS QA). No CASA. Standalone tool reading the PHANGS master key; no pipeline handler hooks.
 - Modules: MS (metadata, uv coverage, field/SPW coverage), imaging, postprocess (incl. postprocess/imaging flux ratio, PB stats), derived (moment maps).
 - `diagnostics/`: line-by-line port of Annie's older `phangs_cube_show.pro` (robust_sigma, per-channel stats in/out of mask, rms0, histograms, "Antonio" density spectra, channel maps) plus Daizhong's legacy per-channel 5-panel figures.
 - Outputs per cube: JSON stats, pdflatex PDF (IDL layout), unified HTML report; survey-wide portal `index.html`. Production run on 90 cubes reported in its TODO.
 - No pass/warn/fail or thresholds; raw metrics and plots only.
+- Suspected issues: beam-area unit conversion in `imaging_utils.extract_cube_info` (BMAJ in degrees treated as radians); fixed 60″ PB in MS coverage plot; hard-coded test paths; vendored `analysisUtils.py` (upstream is removing this dependency, PR #402).
 - Also contains archived legacy code: Annie's older IDL suite (`idl_code_by_annie_hughes/cube_compare/`, incl. `phangs_cube_show.pro`, the reference for the Python port) and Daizhong's older Python QA (`python_code_by_daizhong_liu/`).
 - Not ported to the package (legacy only): `phangs_cube_compare.pro` (regrid two cubes to common grid/resolution/FoV and compare statistics, e.g. ALMA TP vs. IRAM HERA), `phangs_tpcube_show.pro` (TP cube inspection), Daizhong's two-cube comparison and calibrator-flux scripts.
-- Vendors a copy of `analysisUtils.py` (upstream is removing this dependency, PR #402).
 
 **Annie: `cmz_qa_idl`** (public)
-- IDL; newer CMZ-specific fork of the `phangs_cube_show.pro` lineage (`cmz_cube_show.pro`), one-row FITS summary table (~100 stats columns), PNG plots. Does not include the cube-comparison or TP routines (those exist only in the archived copy in Daizhong's repo).
+- IDL; CMZ-specific fork of `phangs_cube_show.pro` (`cmz_cube_show.pro`); one-row FITS summary table (~100 stats columns), PNG plots. Does not include the cube-comparison or TP routines.
 - Dependencies not bundled: IDLAstro, Freudenreich robust routines, CPROPStoo, Coyote Graphics, ImageMagick.
 - `run_cmz_qa.pro` currently passes the data cube as residual and generates noise and mask from the cube (CPROPStoo), so residual-based outputs are not meaningful yet.
 - `cmz_check_header` requires K units and reads only single-beam keywords.
+- Code comparison with the older `phangs_cube_show.pro` (and hence Daizhong's port): helper routines identical; statistics identical. CMZ version adds per-channel mask maps, a velocity-collapsed mask map and a channel-averaged noise map (not in Daizhong's port); enables channel maps (already in Daizhong's port); drops the uv report and LaTeX PDF. `gennoise`/`genmask` exist in both IDL versions but not in Daizhong's port. Numerical agreement IDL vs. Python untested.
 
 **Annie: `cmz_qa_site`** (public)
 - jinja2 static-site generator deployed via GitHub Pages; displays Annie's PNGs and selected FITS-table columns per galaxy/product. Display only.
@@ -350,4 +363,3 @@ Status as received; not yet tested on PHANGS-CMZs products.
 - `casaImagingRoutines.check_noise_convergence()` (+ tests): candidate basis for I3.
 - `handlerTestImaging`: beam properties, PSF radial profiles, CSV summary (relevant to I1, P3).
 - `utilsTheoreticalNoise`: theoretical noise maps from AOT pointings (candidate noise reference for P4, I5).
- 
