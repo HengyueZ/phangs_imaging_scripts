@@ -29,6 +29,7 @@ class TestPipelineImports:
         "KeyHandler",
         "ReleaseHandler",
         "DerivedHandler",
+        "QAHandler",
         "setup_logger",
     ]
 

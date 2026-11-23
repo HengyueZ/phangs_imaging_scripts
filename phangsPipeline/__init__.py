@@ -42,6 +42,8 @@ if casa_enabled:
 # Modules that require spectral-cube to be installed
 if spectral_cube_enabled:
     from .handlerDerived import DerivedHandler
+    from .handlerQA import QAHandler
     __all__.extend([
         "DerivedHandler",
+        "QAHandler",
     ])
