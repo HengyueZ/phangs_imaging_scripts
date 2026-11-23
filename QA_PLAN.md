@@ -6,7 +6,7 @@
  
 | | |
 |---|---|
-| **Last updated** | 2026-11-18 |
+| **Last updated** | 2026-11-23 |
 | **Upstream repo** | [akleroy/phangs_imaging_scripts](https://github.com/akleroy/phangs_imaging_scripts) |
 | **Team fork** | [HengyueZ/phangs_imaging_scripts](https://github.com/HengyueZ/phangs_imaging_scripts) |
 | **Integration branch** | `CMZ-QA` (development on `QA-build`; fork `master` mirrors upstream). See §3. |
@@ -102,11 +102,11 @@ Open design decisions:
  
 | # | Question | Options | Leaning | Decision |
 |---|---|---|---|---|
-| A1 | Where does QA live? | (a) new `handlerQA` following handler pattern; (b) standalone post-hoc tool; (c) both. Design draft suggests (c) led by (a) | (a) reuses key files and target lists. Proposal (Hengyue, 2026-11-19, not agreed): one `QAHandler(HandlerTemplate)` in `phangsPipeline/handlerQA.py`, run after all other stages, with no hooks in existing handlers. Per-stage loops (`loop_qa_imaging`, `loop_qa_postprocess`, `loop_qa_derived`, later `loop_qa_vis`) plus `loop_qa(do_all=True)`, so it can run right after one stage or all at the end. Targets/products/configs come from `KeyHandler` + `HandlerTemplate.looper()` instead of Daizhong's filename discovery. Plot/stat code in pure-Python `utilsQA*` / `scQA*` modules called by the handler. Compatible with A7(a) and A8 | Partly decided: QA code lives in the team fork of `phangs_imaging_scripts` (2026-11-18). Location within the package (subpackage / `handlerQA` / other) still open |
+| A1 | Where does QA live? | (a) new `handlerQA` following handler pattern; (b) standalone post-hoc tool; (c) both. Design draft suggests (c) led by (a) | (a) reuses key files and target lists. Proposal (Hengyue, 2026-11-19, not agreed): one `QAHandler(HandlerTemplate)` in `phangsPipeline/handlerQA.py`, run after all other stages, with no hooks in existing handlers. Per-stage loops (`loop_qa_imaging`, `loop_qa_postprocess`, `loop_qa_derived`, later `loop_qa_vis`) plus `loop_qa(do_all=True)`, so it can run right after one stage or all at the end. Targets/products/configs come from `KeyHandler` + `HandlerTemplate.looper()` instead of Daizhong's filename discovery. Plot/stat code in pure-Python `utilsQA*` / `scQA*` modules called by the handler. Compatible with A7(a) and A8 | **Decided (2026-11-23): (a).** QA is a handler (`QAHandler`) in `phangsPipeline`, run in series with the other stages from the pipeline run script: setting `do_qa = True` is all a user needs to produce the plots. No standalone tool for now. Option (b)/(c) may be revisited later |
 | A2 | QA results format | (i) one record per *target × product × check*: status, metric values, thresholds used, plot paths. (ii) Design draft: one row per *metric* (long format), raw values stored, pass/warn/fail computed from the thresholds file at a `collect` step, so retuning thresholds needs no QA rerun and X1–X3 read raw metrics directly. Per-target JSON-lines, aggregated to one table (Parquet / ECSV). | — | _open_ |
 | A3 | CASA vs pure Python | Split checks needing CASA (visibility-level: per-part PSF, sensitivity) from FITS-only checks | Keep separate | _open_ |
 | A4 | Thresholds | Config/key file, never hard-coded; per-target/per-product overrides? | Config | _open_ |
-| A5 | Plots | Standard per-target diagnostic directory + naming convention (draft: `qa/plots/<target>/<product>/<config>/<check_id>.png` + thumbnails); minimal required plot set per check | — | _open_ |
+| A5 | Plots | Standard per-target diagnostic directory + naming convention (draft: `qa/plots/<target>/<product>/<config>/<check_id>.png` + thumbnails); minimal required plot set per check | — | Partly decided (2026-11-23): QA output goes under a new `qa_root` entry in `master_key.txt`, parsed by `KeyHandler` and created by `make_missing_directories` like the other stage roots. Layout below `qa_root`, naming convention and minimal plot set still open |
 | A6 | Integration of Annie/Daizhong scripts (external) | Port into new framework vs wrap as-is; maintenance falls to us either way | — | Port Daizhong's Python code (which already ports Annie's older IDL), validated against his original outputs on NGC1097 (2026-11-18) |
 | A7 | Reporting or gating? | (a) QA only reports; (b) a QA fail can block downstream stages (opt-in key-file flag). Determines whether QA hooks are needed inside existing handlers. | — | _open_ |
 | A8 | Retroactive QA | Must QA run on already-existing products? If yes, checks must work without in-process records, e.g. I3 must parse logs or degrade gracefully. | — | _open_ |
@@ -292,7 +292,7 @@ Proposed (design draft, not agreed):
 - [ ] Technical questions for Annie & Daizhong: final list still to be agreed (candidates: which code P1 refers to; "Antonio plot"; what `cmz_qa_idl` adds; whether self-generated noise/mask in `run_cmz_qa.pro` is intentional)
 - [ ] Validation tolerance for ported code (§3). Proposal (not agreed): numeric outputs (JSON, FITS) same keys/shapes/NaN positions and `numpy.allclose(rtol=1e-6)`; plots compared via the plotted arrays saved alongside, not PNG pixels; PDF/HTML reports excluded; both versions run in the same recorded MPCDF environment
 - [ ] Review requirement for merges `QA-build` → `CMZ-QA`: named reviewer per PR, or none for now?
-- [ ] Location of QA code within the package (A1)
+- [x] ~~Location of QA code within the package (A1)~~ `QAHandler` in `phangsPipeline`, enabled by `do_qa = True` in the run script (2026-11-23)
 - [ ] Data scope for PHANGS-CMZs: targets, lines, configurations, TP or not (see §1 Scope)
 - [ ] Is postprocessing (PB correction, feathering, round-beam convolution, mosaicking) in scope for QA? (§5.5)
 - [ ] Which of the proposed checks in §5.5 to adopt, and with which owners?
@@ -328,6 +328,8 @@ Proposed (design draft, not agreed):
  
 | Date | Decision | Who |
 |---|---|---|
+| 2026-11-23 | A1: QA is a handler (`QAHandler`) in `phangsPipeline`, run in series with the other pipeline stages; `do_qa = True` in the run script produces the plots. No standalone tool for now | Team |
+| 2026-11-23 | A5 (partial): QA output root is a new `qa_root` key in `master_key.txt`, handled by `KeyHandler` like the other stage roots | Hengyue |
 | 2026-11-18 | Work in Hengyue's fork; `CMZ-QA` is the integration branch (supersedes `qa` from 2026-11-05); development on `QA-build`; fork `master` mirrors upstream; upstream PR from `CMZ-QA` | Team meeting |
 | 2026-11-18 | Hengyue leads the infrastructure build; goal: QA infrastructure by Christmas 2026, galaxy QA from the New Year | Team meeting |
 | 2026-11-18 | Port Daizhong's code; validate on NGC1097 (ALMA CMZ data): ported output must agree with Daizhong's within a small tolerance before merging to `CMZ-QA` | Team meeting |
