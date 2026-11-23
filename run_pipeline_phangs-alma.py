@@ -22,6 +22,7 @@ do_staging = True
 do_imaging = True
 do_postprocess = True
 do_derived = True
+do_qa = False
 do_release = False
 
 # Targets to process
@@ -76,6 +77,7 @@ uv_handler = None
 im_handler = None
 pp_handler = None
 derived_handler = None
+qa_handler = None
 release_handler = None
 
 if casa_enabled:
@@ -110,6 +112,13 @@ if do_derived:
     derived_handler.set_feather_configs(only=feather_configs)
     derived_handler.set_line_products(only=line_products)
     derived_handler.set_no_cont_products(no_cont)
+if do_qa:
+    qa_handler = ppl.QAHandler(key_handler=key_handler)
+    qa_handler.set_targets(only=targets)
+    qa_handler.set_interf_configs(only=interf_configs)
+    qa_handler.set_feather_configs(only=feather_configs)
+    qa_handler.set_line_products(only=line_products)
+    qa_handler.set_no_cont_products(no_cont)
 if do_release:
     release_handler = ppl.ReleaseHandler(key_handler=key_handler)
     release_handler.set_targets(only=targets)
@@ -124,6 +133,7 @@ key_handler.make_missing_directories(
     postprocess=do_postprocess,
     derived=do_derived,
     release=do_release,
+    qa=do_qa,
 )
 
 if casa_enabled:
@@ -283,6 +293,22 @@ if do_derived:
         do_shuffling=do_shuffling,
         do_flatmask=do_flatmask,
         do_flatmaps=do_flatmaps,
+        overwrite=True,
+    )
+
+##############################################################################
+# Step through quality assessment
+##############################################################################
+
+# Make the quality assessment (QA) plots from the imaging, postprocessed
+# and derived products, and write them under qa_root. This only reads the
+# products made above. imaging_method sets the imaging file names, so it
+# should be the same as used for imaging and postprocessing.
+
+if do_qa:
+    qa_handler.loop_qa(
+        do_all=True,
+        imaging_method=imaging_method,
         overwrite=True,
     )
 
