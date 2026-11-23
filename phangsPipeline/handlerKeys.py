@@ -202,6 +202,7 @@ class KeyHandler:
         self._postprocess_root = ''  # os.getcwd()+'/../postprocess/'
         self._derived_root = ''  # os.getcwd()+'/../derived/'
         self._release_root = ''  # os.getcwd()+'/../release/'
+        self._qa_root = ''  # os.getcwd()+'/../qa/'
         self._cleanmask_root = ''  # os.getcwd() + '/../cleanmask/'
         self._vfield_root = ''  # os.getcwd() + '/../vfield/'
 
@@ -231,6 +232,7 @@ class KeyHandler:
         first_postprocess_root = True
         first_derived_root = True
         first_release_root = True
+        first_qa_root = True
 
         lines_read = 0
         while True:
@@ -278,6 +280,14 @@ class KeyHandler:
                     first_release_root = False
                 else:
                     logger.warning("Multiple release_root definitions. Using the last one.")
+                lines_read += 1
+
+            if this_key == 'qa_root':
+                self._qa_root = self._parse_path(this_value)
+                if first_qa_root:
+                    first_qa_root = False
+                else:
+                    logger.warning("Multiple qa_root definitions. Using the last one.")
                 lines_read += 1
 
             if this_key == 'key_dir':
@@ -425,6 +435,12 @@ class KeyHandler:
         if len(self._vfield_roots) == 0:
             logger.warning("The vfield root directory has not been set.")
             logger.warning("Please set vfield_root in your master_key file if you want to use an input vfield for shuffling.")
+
+        # The qa root is optional, only needed when running the QA handler
+
+        if self._qa_root is None or self._qa_root == '':
+            logger.warning("The qa root directory has not been set.")
+            logger.warning("Please set qa_root in your master_key file if you want to run the QA handler.")
 
         all_key_lists = [self._casaversion_keys,
                          self._alma_download_keys,
@@ -1206,7 +1222,7 @@ class KeyHandler:
 
         return ()
 
-    def check_dir_existence(self, imaging=True, postprocess=True, derived=True, release=True):
+    def check_dir_existence(self, imaging=True, postprocess=True, derived=True, release=True, qa=False):
         """
         Check the existence of the directories for imaging and post-processing.
         """
@@ -1249,6 +1265,13 @@ class KeyHandler:
                     logging.warning("Missing release directory: " + self._release_root + this_dir)
                     missing_dirs.append(self._release_root + this_dir)
 
+            if qa:
+                if os.path.isdir(self._qa_root + this_dir):
+                    found_dirs += 1
+                else:
+                    logging.warning("Missing qa directory: " + self._qa_root + this_dir)
+                    missing_dirs.append(self._qa_root + this_dir)
+
         logging.info("Found " + str(found_dirs) + " directories.")
 
         missing_count = (len(missing_dirs))
@@ -1267,7 +1290,7 @@ class KeyHandler:
                             imaging=False, postprocess=False,
                             derived=False, release=False,
                             cleanmask=False, singledish=False,
-                            vfield=False):
+                            vfield=False, qa=False):
         """
         Return the imaging working directory given a target name. If
         changeto is true, then change directory to that location.
@@ -1299,6 +1322,11 @@ class KeyHandler:
             this_dir = self._derived_root + self._dir_for_target[target] + '/'
         elif release:
             this_dir = self._release_root + self._dir_for_target[target] + '/'
+        elif qa:
+            if self._qa_root is None or self._qa_root == '':
+                logging.error("The qa root directory has not been set. Set qa_root in your master_key file.")
+                return None
+            this_dir = self._qa_root + self._dir_for_target[target] + '/'
         elif cleanmask:
             this_dir = self._cleanmask_roots[-1] + self._dir_for_target[target] + '/'
         elif singledish:
@@ -1344,6 +1372,13 @@ class KeyHandler:
         changeto is true, then change directory to that location.
         """
         return self._get_dir_for_target(target=target, changeto=changeto, release=True)
+
+    def get_qa_dir_for_target(self, target=None, changeto=False):
+        """
+        Return the QA working directory given a target name. If
+        changeto is true, then change directory to that location.
+        """
+        return self._get_dir_for_target(target=target, changeto=changeto, qa=True)
 
     def get_vfield_dir_for_target(self, target=None, changeto=False):
         """
@@ -3175,13 +3210,15 @@ class KeyHandler:
 
     # region Manipulate files and file structure
 
-    def make_missing_directories(self, ms_root=False, imaging=False, postprocess=False, derived=False, release=False):
+    def make_missing_directories(self, ms_root=False, imaging=False, postprocess=False, derived=False, release=False,
+                                 qa=False):
         """
         Make any missing imaging or postprocessing directories.
         """
 
-        if not ms_root and not imaging and not postprocess and not derived and not release:
-            logging.error("Set either ms_root or imaging or postprocess or product or release to True. Returning.")
+        if not ms_root and not imaging and not postprocess and not derived and not release and not qa:
+            logging.error("Set either ms_root or imaging or postprocess or product or release or qa to True. "
+                          "Returning.")
             return False
 
         if ms_root:
@@ -3218,15 +3255,24 @@ class KeyHandler:
                 # return(False)
                 os.makedirs(self._release_root)
 
+        if qa:
+            if self._qa_root is None or self._qa_root == '':
+                # qa_root is optional, so don't make anything if it is not set
+                logging.error("The qa root directory has not been set. Set qa_root in your master_key file.")
+                qa = False
+            elif not os.path.isdir(self._qa_root):
+                logging.info("Creating qa root directory: " + self._qa_root)
+                os.makedirs(self._qa_root)
+
         missing_dirs = self.check_dir_existence(imaging=imaging, postprocess=postprocess, derived=derived,
-                                                release=release)
+                                                release=release, qa=qa)
         made_directories = 0
         for this_missing_dir in missing_dirs:
             made_directories += 1
             os.makedirs(this_missing_dir)
 
         missing_dirs = self.check_dir_existence(imaging=imaging, postprocess=postprocess, derived=derived,
-                                                release=release)
+                                                release=release, qa=qa)
 
         logging.info("Made " + str(made_directories) + " directories. Now " + str(len(missing_dirs)) + " missing.")
 

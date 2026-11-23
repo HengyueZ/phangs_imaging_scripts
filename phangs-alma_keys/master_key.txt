@@ -80,6 +80,16 @@
 # The velocity field can either be provided or created from the
 # moment-1 in the derived products stage.
  
+# 'qa_root' 
+
+# is the root directory for the quality assessment (QA) plots made by
+# the QA handler from the imaging, postprocessed, and derived
+# products. Each individual target will have a subdirectory of this
+# parent QA directory where the plots for that target are written.
+
+# This is optional. You only need this if you are running the QA
+# handler (do_qa in the pipeline run script).
+ 
 # ------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------
@@ -182,6 +192,7 @@ imaging_root		/export/bell-tycho/leroy.42/reduction/alma/phangs-alma/imaging/
 postprocess_root	/export/bell-tycho/leroy.42/reduction/alma/phangs-alma/postprocess/
 derived_root		/export/bell-tycho/leroy.42/reduction/alma/phangs-alma/derived/
 release_root		/export/bell-tycho/leroy.42/reduction/alma/phangs-alma/release/
+qa_root			/export/bell-tycho/leroy.42/reduction/alma/phangs-alma/qa/
 ms_root			    /export/bell-tycho/leroy.42/reduction/alma/phangs-alma/uvdata/
 ms_root			    /data/young/leroy.42/alma_data/PHANGS/
 ms_root             /data/rubin/leroy.42/alma_data/PHANGS/
