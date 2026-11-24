@@ -152,21 +152,92 @@ def test_loop_qa_missing_inputs(key_handler):
         assert r["reason"].startswith("missing input")
 
 
+def _write_test_cube(filename):
+    """Write a small 3D cube (3 channels) with a NaN pixel and an all-NaN channel."""
+
+    from astropy.io import fits
+
+    data = np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5)
+    data[0, 0, 0] = np.nan
+    data[2] = np.nan
+    fits.PrimaryHDU(data).writeto(filename, overwrite=True)
+
+    return data
+
+
 def test_loop_qa_found_input(key_handler):
-    """With the main cube present, the stage runs and writes to the qa directory."""
+    """With the main cube present, the checks run and write to the qa directory."""
+
+    pytest.importorskip("matplotlib")
 
     imaging_dir = key_handler.get_imaging_dir_for_target(target=_TARGET)
     os.makedirs(imaging_dir, exist_ok=True)
-    open(os.path.join(imaging_dir, "testgal_C1_co21.fits"), "w").close()
+    _write_test_cube(os.path.join(imaging_dir, "testgal_C1_co21.fits"))
 
     results = _qa_handler(key_handler).loop_qa(do_imaging=True)
 
-    assert len(results) == 1
-    assert results[0]["reason"] == "no imaging QA checks implemented yet"
+    assert [(r["check"], r["status"]) for r in results] == [("cube_statistics", "done")]
 
     outdir = os.path.join(key_handler.get_qa_dir_for_target(target=_TARGET),
                           "imaging", "testgal_C1_co21")
-    assert os.path.isdir(outdir)
+    assert os.path.isfile(os.path.join(outdir, "cube_statistics.png"))
+    with np.load(os.path.join(outdir, "cube_statistics.npz")) as npz:
+        assert sorted(npz.files) == ["channels", "max", "mean", "median", "min", "std"]
+
+
+def test_loop_qa_unreadable_input(key_handler):
+    """An input file that cannot be read is recorded as failed, not raised."""
+
+    postprocess_dir = key_handler.get_postprocess_dir_for_target(target=_TARGET)
+    os.makedirs(postprocess_dir, exist_ok=True)
+    open(os.path.join(postprocess_dir, "testgal_C1_co21_pbcorr_trimmed_k.fits"), "w").close()
+
+    results = _qa_handler(key_handler).loop_qa(do_postprocess=True)
+
+    assert [(r["check"], r["status"]) for r in results] == [("cube_statistics", "failed")]
+
+
+def test_plot_cube_statistics_postprocess(tmp_path):
+    """Per-channel stats match numpy on the finite pixels; postprocess saves 4 arrays."""
+
+    pytest.importorskip("matplotlib")
+    from phangsPipeline import utilsQAModulePlots
+
+    infile = str(tmp_path / "cube.fits")
+    data = _write_test_cube(infile)
+    outfile_root = str(tmp_path / "qa" / "cube_statistics")
+
+    png_file = utilsQAModulePlots.plot_cube_statistics(
+        infile=infile, outfile_root=outfile_root, stage="postprocess")
+
+    assert png_file == outfile_root + ".png"
+    with np.load(outfile_root + ".npz") as npz:
+        assert sorted(npz.files) == ["channels", "max", "mean", "std"]
+        np.testing.assert_array_equal(npz["channels"], [0, 1, 2])
+        plane = data[0][np.isfinite(data[0])]
+        assert npz["mean"][0] == float(np.nanmean(plane))
+        assert npz["std"][1] == float(np.nanstd(data[1]))
+        # All-NaN channel gives NaN, not an error
+        assert np.isnan(npz["max"][2])
+
+    # Existing output is kept unless overwrite is set
+    mtime = os.path.getmtime(outfile_root + ".npz")
+    utilsQAModulePlots.plot_cube_statistics(
+        infile=infile, outfile_root=outfile_root, stage="postprocess")
+    assert os.path.getmtime(outfile_root + ".npz") == mtime
+
+
+def test_plot_cube_statistics_rejects_4d(tmp_path):
+    """A cube that is not 3D raises, so the handler records the check as failed."""
+
+    from astropy.io import fits
+    from phangsPipeline import utilsQAModulePlots
+
+    infile = str(tmp_path / "cube4d.fits")
+    fits.PrimaryHDU(np.zeros((1, 2, 3, 3), dtype=np.float32)).writeto(infile)
+
+    with pytest.raises(ValueError):
+        utilsQAModulePlots.compute_cube_statistics(infile=infile)
 
 
 def test_loop_qa_without_qa_root(key_handler_no_qa):

@@ -31,6 +31,34 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Plot resolution and matplotlib settings of the original package
+# (COMMON_DPI and setup_matplotlib in Daizhong Liu's
+# modules/*/*_plots.py). The original sets these globally; here they
+# are applied with matplotlib.rc_context(QA_RCPARAMS) while each plot
+# is made, so that the rest of the pipeline is not affected.
+
+QA_DPI = 200
+
+QA_RCPARAMS = {
+    'axes.labelsize': '12',
+    'axes.grid': True,
+    'axes.formatter.useoffset': False,
+    'xtick.direction': 'in',
+    'ytick.direction': 'in',
+    'xtick.minor.visible': True,
+    'ytick.minor.visible': True,
+    'xtick.labelsize': '8',
+    'ytick.labelsize': '8',
+    'xtick.top': True,
+    'ytick.right': True,
+    'grid.color': 'b0b0b0',
+    'grid.linestyle': '--',
+    'grid.linewidth': 0.25,
+    'grid.alpha': 0.8,
+    'legend.fontsize': '9',
+    'legend.borderaxespad': 0.2,
+}
+
 
 ##############################################################
 # Output file names
@@ -57,7 +85,7 @@ def get_qa_plot_filenames(outfile_root=None):
 ##############################################################
 
 def save_qa_plot(fig=None, outfile_root=None, arrays=None,
-                 dpi=150, overwrite=False):
+                 dpi=QA_DPI, overwrite=False):
     """
     Save a QA plot to {outfile_root}.png and the plotted arrays to
     {outfile_root}.npz. Closes the figure afterwards.
@@ -69,7 +97,8 @@ def save_qa_plot(fig=None, outfile_root=None, arrays=None,
         arrays (dict): Name -> array of everything that was plotted.
             Saved with numpy.savez, so each value must be convertible
             to a numpy array.
-        dpi (int, optional): Resolution of the PNG. Defaults to 150.
+        dpi (int, optional): Resolution of the PNG. Defaults to
+            QA_DPI (200, as in the original package).
         overwrite (bool, optional): If False and both output files
             already exist, do nothing. Defaults to False.
 

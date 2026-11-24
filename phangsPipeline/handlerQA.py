@@ -44,6 +44,7 @@ import os
 
 from . import handlerTemplate
 from . import utilsFilenames
+from . import utilsQAModulePlots
 
 logger = logging.getLogger(__name__)
 
@@ -384,12 +385,14 @@ class QAHandler(handlerTemplate.HandlerTemplate):
             product=None,
             check=None,
             function=None,
-            **kwargs
+            function_kwargs=None,
     ):
         """
         Run one QA check, catching any exception so that one failing
-        check does not stop the loop. The function should return the
-        name of the main output file (or None if nothing was made).
+        check does not stop the loop. The function is called with the
+        keyword arguments in function_kwargs and should return the
+        name of the main output file, or None if nothing was made
+        (recorded as failed).
         """
 
         if self._dry_run:
@@ -399,12 +402,20 @@ class QAHandler(handlerTemplate.HandlerTemplate):
             return (None)
 
         try:
-            outfile = function(**kwargs)
+            if function_kwargs is None:
+                function_kwargs = {}
+            outfile = function(**function_kwargs)
         except Exception as e:
             logger.exception("QA check " + str(check) + " failed.")
             self._record_qa_result(
                 stage=stage, target=target, config=config, product=product,
                 check=check, status='failed', reason=repr(e))
+            return (None)
+
+        if outfile is None:
+            self._record_qa_result(
+                stage=stage, target=target, config=config, product=product,
+                check=check, status='failed', reason='no output made, see log')
             return (None)
 
         self._record_qa_result(
@@ -511,9 +522,18 @@ class QAHandler(handlerTemplate.HandlerTemplate):
         # Run the QA checks. Each ported plot adds a call to
         # self._run_qa_check here.
 
-        self._record_qa_result(
+        # Per-channel statistics (issue #5)
+
+        self._run_qa_check(
             stage=stage, target=target, config=config, product=product,
-            check='all', status='skipped', reason='no imaging QA checks implemented yet')
+            check='cube_statistics',
+            function=utilsQAModulePlots.plot_cube_statistics,
+            function_kwargs={
+                'infile': os.path.abspath(indir) + '/' + input_file,
+                'outfile_root': outdir + 'cube_statistics',
+                'stage': stage,
+                'overwrite': overwrite,
+            })
 
         return (None)
 
@@ -548,9 +568,18 @@ class QAHandler(handlerTemplate.HandlerTemplate):
         # Run the QA checks. Each ported plot adds a call to
         # self._run_qa_check here.
 
-        self._record_qa_result(
+        # Per-channel statistics (issue #5)
+
+        self._run_qa_check(
             stage=stage, target=target, config=config, product=product,
-            check='all', status='skipped', reason='no postprocess QA checks implemented yet')
+            check='cube_statistics',
+            function=utilsQAModulePlots.plot_cube_statistics,
+            function_kwargs={
+                'infile': os.path.abspath(indir) + '/' + input_file,
+                'outfile_root': outdir + 'cube_statistics',
+                'stage': stage,
+                'overwrite': overwrite,
+            })
 
         return (None)
 
