@@ -76,7 +76,8 @@ _Please correct/extend these tables._
  
 Branches on the fork:
 - `master`: mirrors upstream `akleroy/phangs_imaging_scripts`; no QA commits.
-- `QA-build`: development of ported/new QA code.
+- `QA-build`: development of ported/new QA code. Changes reach it only through reviewed PRs from `QA-build-<task name>` branches (rule 7).
+- `QA-build-<task name>`: one branch per issue, off `QA-build` (e.g. `QA-build-beam`).
 - `CMZ-QA`: integration branch. Ported code moves here from `QA-build` only once it passes the validation check below. The eventual upstream PR comes from `CMZ-QA`.
 
 Rules:
@@ -86,6 +87,8 @@ Rules:
 4. Each person edits code locally, pushes to GitHub, and pulls into their own MPCDF copy.
 5. Periodically sync `master` with upstream, then merge `master` into `CMZ-QA` to limit drift.
 6. Review requirement for merges into `CMZ-QA`: open (see §7).
+7. Per-issue branches and PRs (2026-11-26): code for each issue is committed on a branch `QA-build-<task name>` off `QA-build`, not on `QA-build` itself. It reaches `QA-build` through a pull request reviewed by other team members. The PR must show that the port is faithful: Daizhong's plot and ours side by side, plus the numerical comparison of the saved arrays. PRs go only from `QA-build-<task name>` to `QA-build`; no PRs to the upstream repo or to `CMZ-QA` as part of this workflow.
+8. Modularity (2026-11-26): before writing a new QA utility, check whether code with the same function already exists in the repo, and reuse it. Code that exists only to reproduce Daizhong's plot faithfully but duplicates or closely resembles existing code is flagged in the issue (and PR). Separate cleanup issues will be opened later; at that stage plots may differ from Daizhong's as long as they effectively do the same.
 ### Keeping everyone in sync (Claude Project + GitHub)
  
 - Claude chats are **per person** and Claude's memory is **per user** — nothing in your chat is automatically visible to others.
@@ -328,6 +331,8 @@ Proposed (design draft, not agreed):
  
 | Date | Decision | Who |
 |---|---|---|
+| 2026-11-26 | Each issue is developed on a branch `QA-build-<task name>` off `QA-build` and merged via a PR into `QA-build` after review by team members; the PR shows Daizhong's and our plot side by side (§3 rule 7) | Team meeting |
+| 2026-11-26 | Modularity: reuse existing repo code for QA utilities; flag port-only duplicates in issues for later cleanup issues, where plots may then differ from Daizhong's (§3 rule 8) | Team meeting |
 | 2026-11-23 | A1: QA is a handler (`QAHandler`) in `phangsPipeline`, run in series with the other pipeline stages; `do_qa = True` in the run script produces the plots. No standalone tool for now | Team |
 | 2026-11-23 | A5 (partial): QA output root is a new `qa_root` key in `master_key.txt`, handled by `KeyHandler` like the other stage roots | Hengyue |
 | 2026-11-18 | Work in Hengyue's fork; `CMZ-QA` is the integration branch (supersedes `qa` from 2026-11-05); development on `QA-build`; fork `master` mirrors upstream; upstream PR from `CMZ-QA` | Team meeting |
