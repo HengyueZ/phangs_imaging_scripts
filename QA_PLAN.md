@@ -6,7 +6,7 @@
  
 | | |
 |---|---|
-| **Last updated** | 2026-11-23 |
+| **Last updated** | 2026-11-26 |
 | **Upstream repo** | [akleroy/phangs_imaging_scripts](https://github.com/akleroy/phangs_imaging_scripts) |
 | **Team fork** | [HengyueZ/phangs_imaging_scripts](https://github.com/HengyueZ/phangs_imaging_scripts) |
 | **Integration branch** | `CMZ-QA` (development on `QA-build`; fork `master` mirrors upstream). See §3. |
