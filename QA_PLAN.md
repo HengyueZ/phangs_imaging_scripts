@@ -76,9 +76,8 @@ _Please correct/extend these tables._
  
 Branches on the fork:
 - `master`: mirrors upstream `akleroy/phangs_imaging_scripts`; no QA commits.
-- `QA-build`: development of ported/new QA code. Changes reach it only through reviewed PRs from `QA-build-<task name>` branches (rule 7).
+- `QA-build`: development of ported/new QA code. Code changes reach it only through reviewed PRs from `QA-build-<task name>` branches; updates to this file are committed to it directly (rule 7).
 - `QA-build-<task name>`: one branch per issue, off `QA-build` (e.g. `QA-build-beam`).
-- `QA-build-workflow`: long-lived branch for updates to this file (no PR needed).
 - `CMZ-QA`: integration branch. Ported code moves here from `QA-build` only once it passes the validation check below. The eventual upstream PR comes from `CMZ-QA`.
 
 Rules:
@@ -88,7 +87,7 @@ Rules:
 4. Each person edits code locally, pushes to GitHub, and pulls into their own MPCDF copy.
 5. Periodically sync `master` with upstream, then merge `master` into `CMZ-QA` to limit drift.
 6. Review requirement for merges into `CMZ-QA`: open (see §7).
-7. Per-issue branches and PRs (2026-11-26): code for each issue is committed on a branch `QA-build-<task name>` off `QA-build`, not on `QA-build` itself. It reaches `QA-build` through a pull request reviewed by other team members. The PR must show that the port is faithful: Daizhong's plot and ours side by side, plus the numerical comparison of the saved arrays. PRs go only from `QA-build-<task name>` to `QA-build`; no PRs to the upstream repo or to `CMZ-QA` as part of this workflow. PRs are for code changes only: updates to this file are committed on the long-lived branch `QA-build-workflow`, without a PR.
+7. Per-issue branches and PRs (2026-11-26): code for each issue is committed on a branch `QA-build-<task name>` off `QA-build`, not on `QA-build` itself. It reaches `QA-build` through a pull request reviewed by other team members. The PR must show that the port is faithful: Daizhong's plot and ours side by side, plus the numerical comparison of the saved arrays. PRs go only from `QA-build-<task name>` to `QA-build`; no PRs to the upstream repo or to `CMZ-QA` as part of this workflow. PRs are for code changes only: updates to this file are committed directly to `QA-build` without a PR, and at the same time to any open `QA-build-<task name>` branch, so that every branch carries the current plan.
 8. Modularity (2026-11-26): before writing a new QA utility, check whether code with the same function already exists in the repo, and reuse it. Code that exists only to reproduce Daizhong's plot faithfully but duplicates or closely resembles existing code is flagged in the issue (and PR). Separate cleanup issues will be opened later; at that stage plots may differ from Daizhong's as long as they effectively do the same.
 9. Bugs in the original code (2026-11-26): the port stays faithful, but every bug found in Daizhong's code is recorded (§10 and the port issue/PR) and gets its own GitHub issue for the fix.
 10. Saved plot data (2026-11-26): the data plotted in each QA plot is saved next to the PNG as an astropy Table (ECSV) instead of `.npz`, for numerical comparison.
