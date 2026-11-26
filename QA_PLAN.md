@@ -90,6 +90,8 @@ Rules:
 6. Review requirement for merges into `CMZ-QA`: open (see §7).
 7. Per-issue branches and PRs (2026-11-26): code for each issue is committed on a branch `QA-build-<task name>` off `QA-build`, not on `QA-build` itself. It reaches `QA-build` through a pull request reviewed by other team members. The PR must show that the port is faithful: Daizhong's plot and ours side by side, plus the numerical comparison of the saved arrays. PRs go only from `QA-build-<task name>` to `QA-build`; no PRs to the upstream repo or to `CMZ-QA` as part of this workflow. PRs are for code changes only: updates to this file are committed on the long-lived branch `QA-build-workflow`, without a PR.
 8. Modularity (2026-11-26): before writing a new QA utility, check whether code with the same function already exists in the repo, and reuse it. Code that exists only to reproduce Daizhong's plot faithfully but duplicates or closely resembles existing code is flagged in the issue (and PR). Separate cleanup issues will be opened later; at that stage plots may differ from Daizhong's as long as they effectively do the same.
+9. Bugs in the original code (2026-11-26): the port stays faithful, but every bug found in Daizhong's code is recorded (§10 and the port issue/PR) and gets its own GitHub issue for the fix.
+10. Saved plot data (2026-11-26): the data plotted in each QA plot is saved next to the PNG as an astropy Table (ECSV) instead of `.npz`, for numerical comparison.
 ### Keeping everyone in sync (Claude Project + GitHub)
  
 - Claude chats are **per person** and Claude's memory is **per user** — nothing in your chat is automatically visible to others.
@@ -333,6 +335,8 @@ Proposed (design draft, not agreed):
 | Date | Decision | Who |
 |---|---|---|
 | 2026-11-26 | Each issue is developed on a branch `QA-build-<task name>` off `QA-build` and merged via a PR into `QA-build` after review by team members; the PR shows Daizhong's and our plot side by side (§3 rule 7) | Team meeting |
+| 2026-11-26 | Every bug found in Daizhong's code while porting is recorded and gets its own fix issue; the port itself stays faithful (§3 rule 9) | Team meeting |
+| 2026-11-26 | Plot data saved as astropy Tables (ECSV) instead of `.npz` (§3 rule 10) | Team meeting |
 | 2026-11-26 | Modularity: reuse existing repo code for QA utilities; flag port-only duplicates in issues for later cleanup issues, where plots may then differ from Daizhong's (§3 rule 8) | Team meeting |
 | 2026-11-23 | A1: QA is a handler (`QAHandler`) in `phangsPipeline`, run in series with the other pipeline stages; `do_qa = True` in the run script produces the plots. No standalone tool for now | Team |
 | 2026-11-23 | A5 (partial): QA output root is a new `qa_root` key in `master_key.txt`, handled by `KeyHandler` like the other stage roots | Hengyue |
