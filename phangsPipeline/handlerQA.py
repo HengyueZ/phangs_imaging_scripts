@@ -17,10 +17,10 @@ file name patterns as in the original package.
 
 Output file names:
     {qa_root}/{target}/{stage}/{target}_{config}_{product}/{plot}.png
-    {qa_root}/{target}/{stage}/{target}_{config}_{product}/{plot}.npz
+    {qa_root}/{target}/{stage}/{target}_{config}_{product}/{plot}.ecsv
 
 where stage is one of 'imaging', 'postprocess' or 'derived', and the
-.npz file holds the arrays that were plotted.
+.ecsv file is an astropy Table of the data that were plotted.
 
 This module is pure Python and does not require CASA.
 
