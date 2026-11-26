@@ -11,8 +11,8 @@ The imaging and postprocess versions of each plot differ only in which
 curves are drawn and in the unit labels, so each is ported here as one
 function with a stage argument.
 
-Every plot is saved together with the plotted arrays (see
-utilsQA.save_qa_plot), so that the output can be compared numerically
+Every plot is saved together with the plotted data as an astropy
+Table (see utilsQA.save_qa_plot), so that the output can be compared numerically
 with the original package.
 
 This module is pure Python and does not require CASA.
@@ -32,6 +32,7 @@ import warnings
 
 import numpy as np
 from astropy.io import fits
+from astropy.table import Table
 
 from . import utilsQA
 
@@ -201,22 +202,23 @@ def plot_cube_statistics(
 
     Output files:
         {outfile_root}.png
-        {outfile_root}.npz with channels, mean, std, max, and for the
-        imaging stage also median and min.
+        {outfile_root}.ecsv, an astropy Table with columns channels,
+        mean, std, max, and for the imaging stage also median and min.
+        The stage and input file are stored in the table metadata.
     """
 
     if stage not in QA_MODULE_STAGES:
         logger.error("stage %s not recognised" % stage)
         return (None)
 
-    png_file, npz_file = utilsQA.get_qa_plot_filenames(outfile_root=outfile_root)
+    png_file, table_file = utilsQA.get_qa_plot_filenames(outfile_root=outfile_root)
     if png_file is None:
         return (None)
 
     # Check for existing output before reading the cube, which is slow
     # for large cubes.
 
-    if os.path.isfile(png_file) and os.path.isfile(npz_file) and not overwrite:
+    if os.path.isfile(png_file) and os.path.isfile(table_file) and not overwrite:
         logger.info("Found existing statistics plot: " + png_file)
         return (png_file)
 
@@ -274,7 +276,7 @@ def plot_cube_statistics(
             axes[1, 1].legend()
             axes[1, 1].grid(True, alpha=0.3)
 
-            arrays = {
+            columns = {
                 'channels': channels,
                 'mean': means,
                 'median': medians,
@@ -311,7 +313,7 @@ def plot_cube_statistics(
             axes[1, 1].legend()
             axes[1, 1].grid(True, alpha=0.3)
 
-            arrays = {
+            columns = {
                 'channels': channels,
                 'mean': means,
                 'std': stds,
@@ -320,8 +322,12 @@ def plot_cube_statistics(
 
         fig.tight_layout()
 
+        table = Table(columns)
+        table.meta['stage'] = stage
+        table.meta['infile'] = infile
+
         utilsQA.save_qa_plot(
-            fig=fig, outfile_root=outfile_root, arrays=arrays,
+            fig=fig, outfile_root=outfile_root, table=table,
             dpi=dpi, overwrite=True)
 
     return (png_file)

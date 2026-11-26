@@ -3,10 +3,10 @@
 Shared utility functions for the quality assessment (QA) handler
 (handlerQA.QAHandler) and the QA plot modules.
 
-Every QA plot is saved together with the arrays that were plotted, so
+Every QA plot is saved together with the data that were plotted, so
 that the output can be compared numerically (e.g., against the
 original QA package). The plot goes to {outfile_root}.png and the
-arrays to {outfile_root}.npz.
+data, as an astropy Table, to {outfile_root}.ecsv.
 
 The QA plots are ported from the PHANGS-ALMA QA pipeline
 (phangs_alma_qa_pipeline) written by Daizhong Liu, which includes
@@ -21,13 +21,13 @@ Example:
     ax.plot(channels, rms)
     utilsQA.save_qa_plot(
         fig=fig, outfile_root='/path/to/qa/cube_statistics',
-        arrays={'channels': channels, 'rms': rms})
+        table={'channels': channels, 'rms': rms})
 """
 
 import logging
 import os
 
-import numpy as np
+from astropy.table import Table
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,9 @@ QA_RCPARAMS = {
 
 def get_qa_plot_filenames(outfile_root=None):
     """
-    Return the (png, npz) file names for a QA plot, given the root
+    Return the (png, table) file names for a QA plot, given the root
     of the output file name, i.e. the full path without extension.
+    The table is written in ECSV format.
     """
 
     if outfile_root is None:
@@ -75,28 +76,31 @@ def get_qa_plot_filenames(outfile_root=None):
         return (None, None)
 
     png_file = outfile_root + '.png'
-    npz_file = outfile_root + '.npz'
+    table_file = outfile_root + '.ecsv'
 
-    return (png_file, npz_file)
+    return (png_file, table_file)
 
 
 ##############################################################
-# Save plots together with the plotted arrays
+# Save plots together with the plotted data
 ##############################################################
 
-def save_qa_plot(fig=None, outfile_root=None, arrays=None,
+def save_qa_plot(fig=None, outfile_root=None, table=None,
                  dpi=QA_DPI, overwrite=False):
     """
-    Save a QA plot to {outfile_root}.png and the plotted arrays to
-    {outfile_root}.npz. Closes the figure afterwards.
+    Save a QA plot to {outfile_root}.png and the plotted data, as an
+    astropy Table, to {outfile_root}.ecsv. Closes the figure
+    afterwards.
 
     Args:
         fig (matplotlib.figure.Figure): The figure to save.
         outfile_root (str): Full path of the output files, without
             extension.
-        arrays (dict): Name -> array of everything that was plotted.
-            Saved with numpy.savez, so each value must be convertible
-            to a numpy array.
+        table (astropy.table.Table or dict): Everything that was
+            plotted, one column per quantity. A dict of name -> array
+            (all of the same length) is converted to a Table. ECSV
+            keeps NaNs, units and the table metadata, and writes
+            floats at full precision.
         dpi (int, optional): Resolution of the PNG. Defaults to
             QA_DPI (200, as in the original package).
         overwrite (bool, optional): If False and both output files
@@ -110,15 +114,18 @@ def save_qa_plot(fig=None, outfile_root=None, arrays=None,
         logger.error("Need a figure.")
         return (False)
 
-    if arrays is None or len(arrays) == 0:
-        logger.error("Need the plotted arrays. Every QA plot must save them.")
+    if table is None or len(table) == 0:
+        logger.error("Need the plotted data. Every QA plot must save them.")
         return (False)
 
-    png_file, npz_file = get_qa_plot_filenames(outfile_root=outfile_root)
+    if not isinstance(table, Table):
+        table = Table(table)
+
+    png_file, table_file = get_qa_plot_filenames(outfile_root=outfile_root)
     if png_file is None:
         return (False)
 
-    if os.path.isfile(png_file) and os.path.isfile(npz_file) and not overwrite:
+    if os.path.isfile(png_file) and os.path.isfile(table_file) and not overwrite:
         logger.info("Found existing QA plot, not overwriting: " + png_file)
         return (False)
 
@@ -127,7 +134,7 @@ def save_qa_plot(fig=None, outfile_root=None, arrays=None,
         os.makedirs(outdir)
 
     fig.savefig(png_file, dpi=dpi, bbox_inches='tight')
-    np.savez(npz_file, **arrays)
+    table.write(table_file, format='ascii.ecsv', overwrite=True)
 
     # Close the figure to free memory when looping over many cubes
 
@@ -135,6 +142,6 @@ def save_qa_plot(fig=None, outfile_root=None, arrays=None,
     plt.close(fig)
 
     logger.info("Wrote QA plot: " + png_file)
-    logger.info("Wrote QA plot arrays: " + npz_file)
+    logger.info("Wrote QA plot data: " + table_file)
 
     return (True)

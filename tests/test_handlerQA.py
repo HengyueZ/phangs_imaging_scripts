@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import pytest
+from astropy.table import Table
 
 # Load the key writer directly, since importing the phangsPipelineTests package
 # pulls in the full (slow, side-effectful) legacy test suite
@@ -181,8 +182,9 @@ def test_loop_qa_found_input(key_handler):
     outdir = os.path.join(key_handler.get_qa_dir_for_target(target=_TARGET),
                           "imaging", "testgal_C1_co21")
     assert os.path.isfile(os.path.join(outdir, "cube_statistics.png"))
-    with np.load(os.path.join(outdir, "cube_statistics.npz")) as npz:
-        assert sorted(npz.files) == ["channels", "max", "mean", "median", "min", "std"]
+    table = Table.read(os.path.join(outdir, "cube_statistics.ecsv"))
+    assert sorted(table.colnames) == ["channels", "max", "mean", "median", "min", "std"]
+    assert table.meta["stage"] == "imaging"
 
 
 def test_loop_qa_unreadable_input(key_handler):
@@ -198,7 +200,7 @@ def test_loop_qa_unreadable_input(key_handler):
 
 
 def test_plot_cube_statistics_postprocess(tmp_path):
-    """Per-channel stats match numpy on the finite pixels; postprocess saves 4 arrays."""
+    """Per-channel stats match numpy on the finite pixels; postprocess saves 4 columns."""
 
     pytest.importorskip("matplotlib")
     from phangsPipeline import utilsQAModulePlots
@@ -211,20 +213,21 @@ def test_plot_cube_statistics_postprocess(tmp_path):
         infile=infile, outfile_root=outfile_root, stage="postprocess")
 
     assert png_file == outfile_root + ".png"
-    with np.load(outfile_root + ".npz") as npz:
-        assert sorted(npz.files) == ["channels", "max", "mean", "std"]
-        np.testing.assert_array_equal(npz["channels"], [0, 1, 2])
-        plane = data[0][np.isfinite(data[0])]
-        assert npz["mean"][0] == float(np.nanmean(plane))
-        assert npz["std"][1] == float(np.nanstd(data[1]))
-        # All-NaN channel gives NaN, not an error
-        assert np.isnan(npz["max"][2])
+    table = Table.read(outfile_root + ".ecsv")
+    assert sorted(table.colnames) == ["channels", "max", "mean", "std"]
+    np.testing.assert_array_equal(table["channels"], [0, 1, 2])
+    plane = data[0][np.isfinite(data[0])]
+    # Exact equality: ECSV writes floats at full precision
+    assert table["mean"][0] == float(np.nanmean(plane))
+    assert table["std"][1] == float(np.nanstd(data[1]))
+    # All-NaN channel gives NaN, not an error
+    assert np.isnan(table["max"][2])
 
     # Existing output is kept unless overwrite is set
-    mtime = os.path.getmtime(outfile_root + ".npz")
+    mtime = os.path.getmtime(outfile_root + ".ecsv")
     utilsQAModulePlots.plot_cube_statistics(
         infile=infile, outfile_root=outfile_root, stage="postprocess")
-    assert os.path.getmtime(outfile_root + ".npz") == mtime
+    assert os.path.getmtime(outfile_root + ".ecsv") == mtime
 
 
 def test_plot_cube_statistics_rejects_4d(tmp_path):
@@ -266,7 +269,7 @@ def test_run_qa_check_failure_does_not_raise(key_handler):
 
 
 def test_save_qa_plot(tmp_path):
-    """save_qa_plot writes the PNG and the plotted arrays together."""
+    """save_qa_plot writes the PNG and the plotted data (ECSV table) together."""
 
     matplotlib = pytest.importorskip("matplotlib")
     matplotlib.use("Agg")
@@ -282,14 +285,14 @@ def test_save_qa_plot(tmp_path):
 
     outfile_root = str(tmp_path / "qa" / "cube_statistics")
     assert utilsQA.save_qa_plot(fig=fig, outfile_root=outfile_root,
-                                arrays={"channels": channels, "rms": rms})
+                                table={"channels": channels, "rms": rms})
 
     assert os.path.isfile(outfile_root + ".png")
-    saved = np.load(outfile_root + ".npz")
+    saved = Table.read(outfile_root + ".ecsv")
     assert np.array_equal(saved["channels"], channels)
     assert np.array_equal(saved["rms"], rms, equal_nan=True)
 
     # Existing output is not overwritten by default
     fig, ax = plt.subplots()
     assert not utilsQA.save_qa_plot(fig=fig, outfile_root=outfile_root,
-                                    arrays={"channels": channels})
+                                    table={"channels": channels})
